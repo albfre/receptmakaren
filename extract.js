@@ -30,7 +30,7 @@ async function extract() {
 }
 
 async function get_data() {
-  const response = await fetch('./20230401');
+  const response = await fetch('./data/20230401');
   if (!response.ok) {
     throw new Error('Could not read file');
   }
