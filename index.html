@@ -1,23 +1,108 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Reverse recipe</title>
-  <style>
-    body {
-      font-family: Helvetica, Arial, sans-serif;
-      font-size: 16px;
-      font-weight: normal;
-    }
-  </style>
-</head>
-<body>
-  <h1>Reverse recipe A</h1>
-  <form>
-    <button type="button" id="extract">Extract</button>
-  </form>
-  <h2>Solution</h2>
-  <p id="solution"></p>
-  <script src="extract.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <title>Food Selector</title>
+    <style>
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        font-weight: normal;
+      }
+      /* Style for the container div */
+      .container {
+        display: flex;
+        flex-wrap: nowrap;
+      }
+      /* Style for left div */
+      .left {
+        float: left;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      
+      /* Style for right div */
+      .right {
+        float: right;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Food Selector</h1>
+    <div class="container">
+      <div class="left">
+        <h2>Nutritional Information</h2>
+        <label>Energy:</label>
+        <input type="text" id="energy">
+        <br>
+        <label>Fat:</label>
+        <input type="text" id="fat">
+        <br>
+        <label>Sugar:</label>
+        <input type="text" id="sugar">
+      </div>
+      <div class="right">
+        <div class="left">
+          <h2>Select Foods</h2>
+          <input type="text" id="searchInput" onkeyup="searchFoods()" placeholder="Search...">
+          <br>
+          <select multiple id="foods">
+          </select>
+          <button id="add-food">Add</button>
+          <button id="remove-food">Remove</button>
+        </div>
+        <div class="right">
+          <h2>Selected Foods</h2>
+          <ul id="selected-foods">
+          </ul>
+        </div>
+      </div>
+    </div>
+    <script>
+      const foods = {
+        "Apple": { energy: 52, fat: 0.2, sugar: 10.4 },
+        "Banana": { energy: 89, fat: 0.3, sugar: 12.2 },
+        "Broccoli": { energy: 34, fat: 0.4, sugar: 1.7 },
+        "Carrot": { energy: 41, fat: 0.2, sugar: 4.7 },
+        "Cheeseburger": { energy: 303, fat: 13.6, sugar: 6.7 },
+        "Chocolate": { energy: 548, fat: 31.3, sugar: 56.5 },
+        "Potato Chips": { energy: 536, fat: 34.9, sugar: 0.5 },
+        "Salad": { energy: 17, fat: 0.1, sugar: 1.6 },
+        "Steak": { energy: 250, fat: 14, sugar: 0 }
+      };
+
+      const foodsSelect = document.querySelector("#foods");
+      for (const foodName in foods) {
+        const option = document.createElement("option");
+        option.textContent = foodName;
+        foodsSelect.appendChild(option);
+      }
+
+      const addFoodButton = document.querySelector("#add-food");
+      addFoodButton.addEventListener("click", () => {
+        const selectedFoods = [];
+        const selectedOptions = foodsSelect.selectedOptions;
+        for (const option of selectedOptions) {
+          const foodName = option.textContent;
+          selectedFoods.push({ name: foodName, ...foods[foodName] });
+        }
+        const selectedFoodsList = document.querySelector("#selected-foods");
+        for (const food of selectedFoods) {
+          const listItem = document.createElement("li");
+          listItem.textContent = `${food.name}: Energy=${food.energy}, Fat=${food.fat}, Sugar=${food.sugar}`;
+          selectedFoodsList.appendChild(listItem);
+        }
+      });
+    </script>
+    <div>
+      <h1>Reverse recipe</h1>
+      <form>
+        <button type="button" id="extract">Extract</button>
+      </form>
+      <p id="solution"></p>
+    </div>
+    <script src="extract.js"></script>
+  </body>
 </html>
