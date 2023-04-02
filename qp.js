@@ -396,6 +396,24 @@ function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
 // Functions relating to buttons on the html page
 
 function solve() {
+  const selectedFoodsList = document.querySelector("#selected-foods");
+  const options = selectedFoodsList.options;
+  const n = options.length;
+  const Q = zeroMatrix(n, n);
+  const c = zeroVector(n);
+
+  const Aeq = zeroMatrix(1, n);
+  const beq = zeroVector(1);
+  beq[0] = 1;
+
+  const Aineq = zeroMatrix(n, n);
+  const bineq = zeroVector(n);
+  for (let i = 0; i < n; i++) {
+    Aeq[0][i] = 1;
+    Aineq[i][i] = 1;
+  }
+
+
   const objective = document.getElementById("objective").value;
   const table = document.getElementById("optimization-problem");
   let constraints = [];
@@ -422,4 +440,4 @@ function printResults() {
   }
 }
 
-document.getElementById("solve").addEventListener("click", solve);
+document.getElementById("optimize").addEventListener("click", solve);

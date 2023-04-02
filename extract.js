@@ -88,13 +88,15 @@ async function convertDatabase() {
   }
 }
 
-async function setFoods() {
+async function populateFoods() {
   const livsmedel = await parseLivsmedelFromXML('compressed');
   const foodsSelect = document.querySelector("#foods");
   foodsSelect.innerHTML = "";
   for (const { livsmedelsnamn, naringsvarden } of livsmedel) {
     const option = document.createElement("option");
     option.textContent = livsmedelsnamn;
+    const mappedArray = Object.entries(naringsvarden).map(([key, value]) => `${key}, ${value[0]}`);
+    option.setAttribute('data-value', mappedArray.join(", "));
     foodsSelect.appendChild(option);
   }
 }
@@ -105,12 +107,13 @@ function addFoods() {
   const selectedOptions = foodsSelect.selectedOptions;
   for (const option of selectedOptions) {
     const foodName = option.textContent;
-    selectedFoods.push(foodName);
+    selectedFoods.push([foodName, option.dataset.value]);
   }
   const selectedFoodsList = document.querySelector("#selected-foods");
   for (const food of selectedFoods) {
     const option = document.createElement("option");
-    option.textContent = food;
+    option.textContent = food[0];
+    option.setAttribute('data-value', food[1]);
     selectedFoodsList.appendChild(option);
   }
 }
@@ -143,4 +146,4 @@ function searchFoods() {
 document.getElementById("extract").addEventListener("click", convertDatabase);
 document.getElementById("add-food").addEventListener("click", addFoods);
 document.getElementById("remove-food").addEventListener("click", removeFoods);
-window.onload = setFoods;
+window.onload = populateFoods;
