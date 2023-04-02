@@ -302,28 +302,6 @@ function dot(x, y) {
   return x.reduce((sum, value, index) => sum + value * y[index], 0);
 }
 
-function ldltFactorization(A) {
-  const n = A.length;
-  const L = zeroMatrix(n, n);
-  const D = zeroVector(n);
-  for (let j = 0; j < n; j++) {
-    let s = 0;
-    for (let k = 0; k < j; k++) {
-      s += L[j][k] * L[j][k] * D[k];
-    }
-    D[j] = A[j][j] - s;
-    for (let i = j + 1; i < n; i++) {
-      let t = 0;
-      for (let k = 0; k < j; k++) {
-        t += L[i][k] * L[j][k] * D[k];
-      }
-      L[i][j] = (A[i][j] - t) / D[j];
-    }
-  }
-  const p = new Array(n);
-  return [L, D];
-}
-
 function symmetricIndefiniteFactorization(A) {
   const n = A.length;
   const L = zeroMatrix(n, n);
@@ -382,139 +360,7 @@ function solveUsingFactorization(L, D, b) {
   return x;
 }
 
-function solveSymmetricIndefinite(A, b) {
-  [L, D] = symmetricIndefiniteFactorization(A);
-  return solveSymmetricIndefiniteUsingFactorization(L, D, b);
-}
-
 // Parsing of objectives and constraints
-
-function parseTerms(str) {
-  const pattern = /([+-]?\s*\d*\.?\d*)\s*(?:\*)?\s*(\w+)(?:\^(\d+))?/g;
-  let matches = [];
-  while ((match = pattern.exec(str)) !== null) {
-    let [_, coefficient, name, power] = match;
-    power = parseInt(power || '1');
-    sign = coefficient.includes('-') ? -1 : 1;
-    coefficient = coefficient.replace('+', '').replace('-', '').replace(/\s/g, '');
-    coefficient = parseFloat(coefficient || '1');
-    if (!(name && coefficient && power)) {
-      throw new Error('Error parsing string: ' + match);
-    }
-    matches.push({
-      variable: name,
-      coefficient: sign * coefficient,
-      power: power
-    });
-  }
-  return matches;
-}
-
-function validateVariables(allVariables, newVariables) {
-  for (let key of newVariables) {
-    if (!allVariables.includes(key)) {
-      throw new Error('Variable "' + key + '" has no quadratic coefficient.');
-    }
-  }
-}
-
-function validatePowers(terms, allowedPowers) {
-  for (let term of terms) {
-    if (!allowedPowers.includes(term.power)) {
-      throw new Error('Disallowed power: ' + term.power + '. Allowed powers: ' + allowedPowers);
-    }
-  }
-}
-
-function addOrInsert(dictionary, term) {
-  dictionary[term.variable] = (term.variable in dictionary)
-    ? dictionary[term.variable] + term.coefficient
-    : term.coefficient;
-}
-
-function parseObjective(str) {
-  const terms = parseTerms(str);
-  let linearCoefficients = {};
-  let quadraticCoefficients = {};
-  validatePowers(terms, [1, 2]);
-  for (let term of terms) {
-    addOrInsert(term.power === 1 ? linearCoefficients : quadraticCoefficients, term);
-  }
-  for (let key in quadraticCoefficients) {
-    if (quadraticCoefficients[key] <= 0) {
-      throw new Error('Variable "' + key + '" has negative quadratic coefficient.');
-    }
-  }
-  const variables = Object.keys(quadraticCoefficients).sort();
-  const m = variables.length;
-
-  const Q = zeroMatrix(m, m);
-  for (let i = 0; i < m; ++i) {
-    Q[i][i] = 2 * quadraticCoefficients[variables[i]];
-  }
-
-  const c = zeroVector(m);
-  const linearKeys = Object.keys(linearCoefficients);
-  validateVariables(variables, linearKeys);
-  for (let key of linearKeys) {
-    const index = variables.indexOf(key);
-    c[index] = linearCoefficients[key];
-  }
-
-  return { Q, c, variables }
-}
-
-function parseConstraint(str) {
-  const separator = str.includes('<=') ? '<=' : (str.includes('>=') ? '>=' : '=');
-  const substrings = str.split(separator);
-  if (substrings.length !== 2) {
-    throw new Error('Error in parsing constraint: ' + str + ', substrings: ' + substrings);
-  }
-  const terms = parseTerms(substrings[0]);
-  const rhs = parseFloat(substrings[1]);
-  validatePowers(terms, [1]);
-  let coefficients = {}
-  for (let term of terms) {
-    addOrInsert(coefficients, term);
-  }
-  return { coefficients, separator, rhs };
-}
-
-function parseConstraints(variables, constraints) {
-  const m = variables.length;
-  let ineqs = [];
-  let eqs = [];
-  for (let constraint of constraints) {
-    const { coefficients, separator, rhs } = parseConstraint(constraint);
-    if (separator == '=') {
-      eqs.push({ coefficients, separator, rhs });
-    }
-    else {
-      ineqs.push({ coefficients, separator, rhs });
-    }
-  }
-
-  function createConstraints(cs) {
-    const A = zeroMatrix(cs.length, m);
-    const b = zeroVector(cs.length);
-    for (let i = 0; i < cs.length; i++) {
-      const c = cs[i];
-      const sign = c.separator == '<=' ? -1 : 1;
-      const constraintVariables = Object.keys(c.coefficients);
-      validateVariables(variables, constraintVariables);
-      for (let v in c.coefficients) {
-        A[i][variables.indexOf(v)] = sign * c.coefficients[v];
-      }
-      b[i] = sign * c.rhs;
-    }
-    return { A, b };
-  }
-
-  const { A: Aeq, b: beq } = createConstraints(eqs);
-  const { A: Aineq, b: bineq } = createConstraints(ineqs);
-
-  return { Aeq, beq, Aineq, bineq };
-}
 
 function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
   let solutionElement = document.getElementById("solution");
@@ -547,43 +393,6 @@ function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
   }
 }
 
-function test() {
-  const { Q, c, variables } = parseObjective('-5 x + 7*y + x^2 + 13x1^2 + 14x2 -   15*x3 + x3^2 + a^2 + 2y^2 + 0.33 x2^2');
-  const { Aeq, beq, Aineq, bineq } = parseConstraints(variables, ['x + 2 y = 3', '2x + 3*y <= 5', 'x1 - 0.3x3 >= 3']);
-  console.log('variables: ' + variables);
-  console.log('Q: ' + Q);
-  console.log('c: ' + c);
-  console.log('Aeq: ' + Aeq);
-  console.log('beq: ' + beq);
-  console.log('Aineq: ' + Aineq);
-  console.log('bineq: ' + bineq);
-  solveQP(Q, c, Aeq, beq, Aineq, bineq, variables);
-}
-
-function solveTestProblem() {
-  let n = 100;
-  const Q = zeroMatrix(n, n);
-  const c = zeroVector(n);
-  const Aineq = zeroMatrix(n, n);
-  const bineq = zeroVector(n);
-  for (let i = 0; i < n; ++i) {
-    Q[i][n-i-1] = 1.2 + 0.1;
-    Q[n-i-1][i] = 1.2 + 0.1;
-
-    Q[i][i] = i + 3;
-    c[i] = -0.5 * i;
-    Aineq[i][i] = 1; // x[i] >= i
-    bineq[i] = i * i * 0.01;
-  }
-  let Aeq = zeroMatrix(0, 0);
-  let beq = zeroVector(0);
-  Aeq = zeroMatrix(1, n);
-  beq = zeroVector(1);
-  Aeq[0][1] = 1; // x[0] - 2 x[1] = 0
-  Aeq[0][2] = -2;
-  solveQP(Q, c, Aeq, beq, Aineq, bineq);
-}
-
 // Functions relating to buttons on the html page
 
 function solve() {
@@ -604,25 +413,13 @@ function solve() {
   }
 }
 
-function clear() {
-  const table = document.getElementById("optimization-problem");
-  for (let i = 2; i < table.rows.length; i++) {
-    table.deleteRow(i);
+function printResults() {
+  const selectedFoodsList = document.querySelector("#selected-foods");
+  for (const food of selectedFoods) {
+    const listItem = document.createElement("li");
+    listItem.textContent = `${food.name}: Energy=${food.energy}, Fat=${food.fat}, Sugar=${food.sugar}`;
+    selectedFoodsList.appendChild(listItem);
   }
-  solutionElement = document.getElementById("solution");
-  solutionElement.innerHTML = '';
 }
 
-function addConstraint() {
-  const table = document.getElementById("optimization-problem");
-  const m = table.rows.length;
-  const row = table.insertRow(m);
-  const constraint = document.getElementById("constraint");
-  row.innerHTML = `<td></td><td id="constraint-${m}">` + constraint.value + '</td>';
-  constraint.value = '';
-}
-
-document.getElementById("clear").addEventListener("click", clear);
 document.getElementById("solve").addEventListener("click", solve);
-document.getElementById("test").addEventListener("click", solveTestProblem);
-document.getElementById("add-constraint").addEventListener("click", addConstraint);

@@ -1,0 +1,35 @@
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: normal;
+}
+.label-width {
+  display: inline-block;
+  width: 160px;
+}
+.input-width {
+  display: inline-block;
+  width: 100px;
+  height: 14px;
+  padding: 0px;
+}
+.box-width {
+  box-sizing: border-box;
+  width: 250px;
+}
+.multi-height{
+  height: 200px;
+}
+.multi-height2{
+  height: 221px;
+}
+/* Style for the container div */
+.container {
+  display: flex;
+  flex-wrap: nowrap;
+}
+div {
+  padding: 10px;
+  box-sizing: border-box;
+}
+

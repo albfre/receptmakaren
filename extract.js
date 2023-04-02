@@ -5,11 +5,11 @@ async function parseLivsmedelFromXML(filename) {
   const data = await readFile(filename);
   const xmlDoc = parser.parseFromString(data, "text/xml");
 
-  const result = {};
-  for (let entry of xmlDoc.getElementsByTagName("Livsmedel")) {
+  const result = [];
+  for (const entry of xmlDoc.getElementsByTagName("Livsmedel")) {
     const livsmedelsnamn = entry.getElementsByTagName("Namn")[0].textContent;
     const naringsvarden = {};
-    for (let naringsvarde of entry.getElementsByTagName("Naringsvarde")) {
+    for (const naringsvarde of entry.getElementsByTagName("Naringsvarde")) {
       const namn = naringsvarde.getElementsByTagName("Namn")[0].textContent;
       const varde = naringsvarde.getElementsByTagName("Varde")[0].textContent;
       const enhet = naringsvarde.getElementsByTagName("Enhet")[0].textContent;
@@ -20,8 +20,9 @@ async function parseLivsmedelFromXML(filename) {
         naringsvarden[namn] = [parseFloat(varde), enhet];
       }
     }
-    result[livsmedelsnamn] = naringsvarden;
+    result.push({ livsmedelsnamn, naringsvarden });
   }
+  result.sort(function(a, b) { return a.livsmedelsnamn.localeCompare(b.livsmedelsnamn, 'sv'); });
 
   console.log(result);
   return result;
@@ -49,12 +50,11 @@ async function getLivsmedelAsString(filename) {
   // create a new XML document
   const xmlDoc = new DOMParser().parseFromString('<?xml version="1.0" encoding="UTF-8"?><root></root>', 'application/xml');
 
-  for (let livsmedelsnamn in livsmedel) {
+  for (const { livsmedelsnamn, naringsvarden } of livsmedel) {
     const livsmedelElement = createChildElement(xmlDoc, xmlDoc.documentElement, 'Livsmedel', '');
     createChildElement(xmlDoc, livsmedelElement, 'Namn', livsmedelsnamn);
 
-    const naringsvarden = livsmedel[livsmedelsnamn];
-    for (let naringsvarde in naringsvarden) {
+    for (const naringsvarde in naringsvarden) {
       const naringsvardeElement = createChildElement(xmlDoc, livsmedelElement, 'Naringsvarde', '');
       createChildElement(xmlDoc, naringsvardeElement, 'Namn', naringsvarde);
       createChildElement(xmlDoc, naringsvardeElement, 'Varde', naringsvarden[naringsvarde][0]);
@@ -88,10 +88,46 @@ async function convertDatabase() {
   }
 }
 
+async function setFoods() {
+  const livsmedel = await parseLivsmedelFromXML('compressed');
+  const foodsSelect = document.querySelector("#foods");
+  foodsSelect.innerHTML = "";
+  for (const { livsmedelsnamn, naringsvarden } of livsmedel) {
+    const option = document.createElement("option");
+    option.textContent = livsmedelsnamn;
+    foodsSelect.appendChild(option);
+  }
+}
+
+function addFoods() {
+  const selectedFoods = [];
+  const foodsSelect = document.querySelector("#foods");
+  const selectedOptions = foodsSelect.selectedOptions;
+  for (const option of selectedOptions) {
+    const foodName = option.textContent;
+    selectedFoods.push(foodName);
+  }
+  const selectedFoodsList = document.querySelector("#selected-foods");
+  for (const food of selectedFoods) {
+    const option = document.createElement("option");
+    option.textContent = food;
+    selectedFoodsList.appendChild(option);
+  }
+}
+
+function removeFoods() {
+  const select = document.querySelector("#selected-foods");
+  for (var i = select.options.length - 1; i >= 0; i--) {
+    if (select.options[i].selected) {
+      select.remove(i);
+    }
+  }
+}
+
 function searchFoods() {
   const input = document.getElementById('searchInput');
   const filter = input.value.toUpperCase();
-  const foodsList = document.getElementById('foodsList');
+  const foodsList = document.querySelector('#foods');
   const foods = foodsList.getElementsByTagName('option');
 
   for (let i = 0; i < foods.length; i++) {
@@ -105,3 +141,6 @@ function searchFoods() {
 }
 
 document.getElementById("extract").addEventListener("click", convertDatabase);
+document.getElementById("add-food").addEventListener("click", addFoods);
+document.getElementById("remove-food").addEventListener("click", removeFoods);
+window.onload = setFoods;
