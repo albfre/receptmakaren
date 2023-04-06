@@ -24,7 +24,7 @@ async function parseLivsmedelFromXML(filename) {
   }
   result.sort(function(a, b) { return a.livsmedelsnamn.localeCompare(b.livsmedelsnamn, 'sv'); });
 
-  console.log(result);
+  //console.log(result);
   return result;
 }
 
@@ -81,7 +81,7 @@ function downloadStringAsFile(stringData, fileName) {
 async function convertDatabase() {
   try {
     const xmlString = await getLivsmedelAsString('compressed');
-    //downloadStringAsFile(xmlString, 'test.txt');
+    downloadStringAsFile(xmlString, 'test.txt');
   }
   catch (error) {
     console.log(`Error ${error.lineNumber}: ${error.message}`);
@@ -99,13 +99,20 @@ async function populateFoods() {
     option.setAttribute('data-value', mappedArray.join(", "));
     foodsSelect.appendChild(option);
   }
+
+  const selected = document.querySelector("#selected-foods");
+  let i = 0;
+  for (const option of foodsSelect.options) {
+    if ( i > 3 ) break;
+    selected.appendChild(option);
+    i++;
+  }
 }
 
 function addFoods() {
   const selectedFoods = [];
   const foodsSelect = document.querySelector("#foods");
-  const selectedOptions = foodsSelect.selectedOptions;
-  for (const option of selectedOptions) {
+  for (const option of foodsSelect.selectedOptions) {
     const foodName = option.textContent;
     selectedFoods.push([foodName, option.dataset.value]);
   }

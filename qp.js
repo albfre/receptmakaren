@@ -1,4 +1,4 @@
-function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=500) {
+function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
   /* minimize 0.5 x' H x + c' x
    *   st    Aeq x = beq
    *         Aineq x >= bineq
@@ -164,12 +164,20 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=500) {
 
 
 // Helper functions for linear algebra operations
+function filledVector(n, v) {
+  return new Array(n).fill(v);
+}
+
 function zeroVector(n) {
-  return new Array(n).fill(0.0);
+  return filledVector(n, 0.0);
+}
+
+function filledMatrix(m, n, v) {
+  return new Array(m).fill().map(() => new Array(n).fill(v));
 }
 
 function zeroMatrix(m, n) {
-  return new Array(m).fill().map(() => new Array(n).fill(0.0));
+  return filledMatrix(m, n, 0.0);
 }
 
 function setSubmatrix(M, X, startI, startJ) {
@@ -363,70 +371,141 @@ function solveUsingFactorization(L, D, b) {
 // Parsing of objectives and constraints
 
 function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
-  let solutionElement = document.getElementById("solution");
-  
-  try {
-    const start = performance.now();
-    const {x, f, res, gap, iter} = interiorPointQP(Q, c, Aeq, beq, Aineq, bineq);
-    const end = performance.now();
+  let solutionElement = document.getElementById("status");
 
-    let tableStr = '<table>';
-    function addRow(str, val) {
-      tableStr += `<tr><td>${str}</td><td>${val}</td></tr>`;
-    }
+  const start = performance.now();
+  const {x, f, res, gap, iter} = interiorPointQP(Q, c, Aeq, beq, Aineq, bineq);
+  const end = performance.now();
 
-    addRow('Objective value', f);
-    addRow('Number of iterations', iter);
-    addRow('Residual', res);
-    addRow('Gap', gap);
-    addRow('Elapsed time', `${end - start} milliseconds`);
-    for (let i = 0; i < x.length; i++) {
-      addRow(variables.length == x.length ? variables[i] : `x${i}`, x[i]);
-    }
-    addRow('Variable vector', x);
-    tableStr += '</table>';
-
-    solutionElement.innerHTML = tableStr;
-
-  } catch (error) {
-    solutionElement.innerHTML = `Error ${error.lineNumber}: ${error.message}`;
+  let tableStr = '<table>';
+  function addRow(str, val) {
+    tableStr += `<tr><td>${str}</td><td>${val}</td></tr>`;
   }
+
+  addRow('Objective value', f);
+  addRow('Number of iterations', iter);
+  addRow('Residual', res);
+  addRow('Gap', gap);
+  addRow('Elapsed time', `${end - start} milliseconds`);
+  for (let i = 0; i < x.length; i++) {
+    addRow(variables.length == x.length ? variables[i] : `x${i}`, x[i]);
+  }
+  addRow('Variable vector', x);
+  tableStr += '</table>';
+
+  solutionElement.innerHTML = tableStr;
+  return x;
 }
 
 // Functions relating to buttons on the html page
+const qp_consideredNaringsvarden = ["Energi (kJ)", "Fett", "Summa mättade fettsyror", "Kolhydrater", "Socker totalt", "Fibrer", "Protein", "Salt"];
+const shortNaringsvarden = ["energi", "fett", "mattat-fett", "kolhydrat", "socker", "fibrer", "protein", "salt"];
+
+function parseSelectedFoods() {
+  if (qp_consideredNaringsvarden.length != shortNaringsvarden.length) {
+    throw new Error('consideredNaringsvarden.length != shortNaringsvarden.length: ' + qp_consideredNaringsvarden + ", " + shortNaringsvarden);
+  }
+  const naringsvardenMap = {}
+  for (let i = 0; i < qp_consideredNaringsvarden.length; i++) {
+    naringsvardenMap[qp_consideredNaringsvarden[i]] = shortNaringsvarden[i];
+  }
+
+  const naringsvarden = {};
+  const selectedFoodsList = document.querySelector("#selected-foods");
+  for (const option of selectedFoodsList.options) {
+    console.log(option.value); // or option.text to get the text content of the option
+    const values = option.dataset.value.split(",");
+    if (values.length % 2 != 0) {
+      throw new Error('Value error: ' + values);
+    }
+    const varden = {};
+    for (let i = 0; i < values.length; i += 2) {
+      const name = values[i].trim();
+      const value = parseFloat(values[i + 1]);
+      if (name in naringsvardenMap) {
+        varden[naringsvardenMap[name]] = value;
+      }
+      else {
+        throw new Error('Unknown name: ' + name);
+      }
+    }
+    naringsvarden[option.value] = varden;
+  }
+  return naringsvarden;
+}
+
+function parseInput() {
+  const naringsvarden = {};
+  for (const naringsvarde of shortNaringsvarden) {
+    const targetValue = parseFloat(document.getElementById(naringsvarde).value);
+    naringsvarden[naringsvarde] = targetValue
+  }
+  return naringsvarden;
+}
+
+function setOutput(naringsvarden) {
+  for (const naringsvarde of shortNaringsvarden) {
+    const value = naringsvarden[naringsvarde];
+    const target = document.getElementById(`result-${naringsvarde}`);
+    target.textContent = value;
+  }
+}
 
 function solve() {
   const selectedFoodsList = document.querySelector("#selected-foods");
   const options = selectedFoodsList.options;
+  const foods = zeroVector(options.length);
+  for (let i = 0; i < options.length; i++) {
+    foods[i] = options[i].value;
+  }
   const n = options.length;
-  const Q = zeroMatrix(n, n);
+  let Q = zeroMatrix(n, n);
   const c = zeroVector(n);
 
-  const Aeq = zeroMatrix(1, n);
-  const beq = zeroVector(1);
-  beq[0] = 1;
+  // e' x = 1
+  const Aeq = filledMatrix(1, n, 1.0);
+  const beq = filledVector(1, 1.0);
 
-  const Aineq = zeroMatrix(n, n);
+  // x >= 0
+  const Aineq = diag(filledVector(n, 1.0));
   const bineq = zeroVector(n);
-  for (let i = 0; i < n; i++) {
-    Aeq[0][i] = 1;
-    Aineq[i][i] = 1;
-  }
 
-
-  const objective = document.getElementById("objective").value;
-  const table = document.getElementById("optimization-problem");
-  let constraints = [];
-  for (let i = 2; i < table.rows.length; i++) {
-    const constraint = document.getElementById(`constraint-${i}`).textContent;
-    constraints.push(constraint);
+  // (t - k0 x0 - k1 x1 ...)^2 = t^2 - 2 t ki xi + ki^2 xi^2 + 2 ki kj xi xj
+  const selectedFoodsNaringsvarden = parseSelectedFoods();
+  const targetNaringsvarden = parseInput();
+  for (const naringsvarde of shortNaringsvarden) {
+    const target = targetNaringsvarden[naringsvarde];
+    for (let i = 0; i < foods.length; i++) {
+      const ki = selectedFoodsNaringsvarden[foods[i]][naringsvarde];
+      //c[i] -= target * ki;
+      Q[i][i] += ki ** 2;
+      for (let j = i + 1; j < foods.length; j++) {
+        const kj = selectedFoodsNaringsvarden[foods[j]][naringsvarde];
+        Q[i][j] += ki * kj;
+        Q[j][i] += ki * kj;
+      }
+    }
   }
+  console.log('Q')
+  console.log(Q)
+  Q = diag(filledVector(n, 1));
+
   try {
-    const { Q, c, variables } = parseObjective(objective);
-    const { Aeq, beq, Aineq, bineq } = parseConstraints(variables, constraints)
-    solveQP(Q, c, Aeq, beq, Aineq, bineq, variables);
+    const x = solveQP(Q, c, Aeq, beq, Aineq, bineq);
+    console.log(x)
+    const naringsvarden = {};
+    for (const naringsvarde of shortNaringsvarden) {
+      naringsvarden[naringsvarde] = 0.0;
+    }
+    
+    for (const naringsvarde of shortNaringsvarden) {
+      for (let i = 0; i < foods.length; i++) {
+        naringsvarden[naringsvarde] += selectedFoodsNaringsvarden[foods[i]][naringsvarde] * x[i];
+      }
+    }
+    setOutput(naringsvarden);
   } catch (error) {
-    let solutionElement = document.getElementById("solution");
+    let solutionElement = document.getElementById("status");
     solutionElement.innerHTML = `Error ${error.lineNumber}: ${error.message}`;
   }
 }

@@ -27,28 +27,28 @@
       <div>
         <h2>Näringsvärden att härma</h2>
         <label class="label-width">Energi (kJ):</label>
-        <input type="text" id="energi" class="input-width">
+        <input type="text" id="energi" class="input-width" value="1300">
         <br>
         <label class="label-width">Fett (g):</label>
-        <input type="text" id="fett" class="input-width">
+        <input type="text" id="fett" class="input-width" value="40">
         <br>
         <label class="label-width">- varav mättat fett (g):</label>
-        <input type="text" id="mattat-fett" class="input-width">
+        <input type="text" id="mattat-fett" class="input-width" value="8">
         <br>
         <label class="label-width">Kolhydrater (g):</label>
-        <input type="text" id="kolhydrat" class="input-width">
+        <input type="text" id="kolhydrat" class="input-width" value="20">
         <br>
         <label class="label-width">- varav socker (g):</label>
-        <input type="text" id="socker" class="input-width">
+        <input type="text" id="socker" class="input-width" value="8">
         <br>
         <label class="label-width">Protein (g):</label>
-        <input type="text" id="protein" class="input-width">
+        <input type="text" id="protein" class="input-width" value="18">
         <br>
         <label class="label-width">Fibrer (g):</label>
-        <input type="text" id="fibrer" class="input-width">
+        <input type="text" id="fibrer" class="input-width" value="8">
         <br>
         <label class="label-width">Salt (g):</label>
-        <input type="text" id="salt" class="input-width">
+        <input type="text" id="salt" class="input-width" value="8">
         <br>
         <br>
         <br>
@@ -90,10 +90,11 @@
     <div>
       <h1>Reverse recipe</h1>
       <form>
-        <button type="button" id="extract">Extract</button>
+        <button type="button" id="extract">Konvertera databas</button>
       </form>
-      <p id="solution"></p>
+      <p id="status"></p>
     </div>
     <script src="extract.js"></script>
+    <script src="qp.js"></script>
   </body>
 </html>
