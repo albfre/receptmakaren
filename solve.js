@@ -32,7 +32,7 @@ for (let i = 0; i < consideredNaringsvarden.length; i++) {
 }
 
 function parseSelectedFoodOption(option) {
-  console.log(option.value); // or option.text to get the text content of the option
+  //console.log(option.value); // or option.text to get the text content of the option
   const values = option.dataset.value.split(",");
   if (values.length % 2 != 0) {
     throw new Error("Value error: " + values);
