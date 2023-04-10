@@ -1,4 +1,6 @@
-const consideredNaringsvarden = ["Energi (kJ)", "Fett", "Summa mättade fettsyror", "Kolhydrater", "Socker totalt", "Fibrer", "Protein", "Salt"];
+const consideredNaringsvarden = ["Energi (kJ)", "Fett", "Summa mättade fettsyror", "Kolhydrater", "Socker totalt", "Protein", "Fibrer", "Salt"];
+const displayNaringsvarden = ["Energi (kJ)", "Fett (g)", "- varav mättat fett (g)" , "Kolhydrater (g)", "- varav socker (g)", "Protein (g)", "Fibrer (g)", "Salt (g)"]
+const shortNaringsvarden = ["energi", "fett", "mattat-fett", "kolhydrat", "socker", "protein", "fibrer", "salt"];
 
 async function parseLivsmedelFromXML(filename) {
   const parser = new DOMParser();
@@ -8,12 +10,19 @@ async function parseLivsmedelFromXML(filename) {
   const result = [];
   for (const entry of xmlDoc.getElementsByTagName("Livsmedel")) {
     const livsmedelsnamn = entry.getElementsByTagName("Namn")[0].textContent;
+    if (livsmedelsnamn == 'Socker') {
+          console.log(entry)
+    }
     const naringsvarden = {};
     for (const naringsvarde of entry.getElementsByTagName("Naringsvarde")) {
       const namn = naringsvarde.getElementsByTagName("Namn")[0].textContent;
-      const varde = naringsvarde.getElementsByTagName("Varde")[0].textContent;
+      const varde = naringsvarde.getElementsByTagName("Varde")[0].textContent.replace(/\s/g, "").replace(",", ".");
       const enhet = naringsvarde.getElementsByTagName("Enhet")[0].textContent;
       if (consideredNaringsvarden.includes(namn)) {
+        const val = parseFloat(varde);
+        if (livsmedelsnamn == 'Socker') {
+          console.log(namn + " " + varde + ", " + val)
+        }
         if (enhet !== (namn === "Energi (kJ)" ? "kJ" : "g")) {
           throw new Error(`Unknown unit: ${enhet}`);
         }
@@ -58,6 +67,38 @@ async function populateFoods() {
   }
 }
 
+async function populateDivs(prefix, valType) {
+  const div = document.querySelector(`#${prefix}-div`);
+  for (let i = 0; i < shortNaringsvarden.length; i++) {
+    const label = document.createElement("label");
+    label.textContent = displayNaringsvarden[i] + ":";
+    label.classList.add("label-width");
+
+    const val = document.createElement(valType);
+    if (valType === "input") {
+      val.type = "text";
+      if (i === 0) {
+        val.value = "1300";
+      }
+    }
+    val.classList.add("input-width");
+    val.setAttribute("id", prefix + "-" + shortNaringsvarden[i]);
+
+    const br = document.createElement("br");
+
+    div.appendChild(label);
+    div.appendChild(val);
+    div.appendChild(br);
+  }
+}
+
+async function populate() {
+  populateFoods();
+  populateDivs("mimic", "input");
+  populateDivs("vald", "label");
+  populateDivs("result", "label");
+}
+
 function addFoods() {
   const selectedFoods = [];
   const foodsSelect = document.querySelector("#foods");
@@ -87,15 +128,28 @@ function searchFoods() {
   const input = document.getElementById('searchInput');
   const filter = input.value.toUpperCase();
   const foodsList = document.querySelector('#foods');
-  const foods = foodsList.getElementsByTagName('option');
+  const foods = Array.from(foodsList.options);
 
-  for (let i = 0; i < foods.length; i++) {
-    const name = foods[i].textContent || foods[i].innerText;
-    if (name.toUpperCase().indexOf(filter) > -1) {
-      foods[i].style.display = '';
-    } else {
-      foods[i].style.display = 'none';
-    }
+  // Sort options by whether they start with filter
+  foods.sort((a, b) => {
+    const atext = a.textContent.toUpperCase();
+    const btext = b.textContent.toUpperCase();
+    const a1 = atext.startsWith(filter);
+    const b1 = btext.startsWith(filter);
+    if (a1 && !b1) return -1;
+    if (b1 && !a1) return 1;
+    return atext.localeCompare(btext, 'sv');
+  });
+
+  // Remove all options from the select element
+  while (foodsList.options.length > 0) {
+    foodsList.remove(0);
+  }
+
+  // Add the sorted options back to the select element and hide the ones not containing filter
+  for (const option of foods) {
+    option.style.display = option.textContent.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
+    foodsList.add(option);
   }
 }
 
@@ -111,4 +165,4 @@ function showFood() {
 
 document.getElementById("add-food").addEventListener("click", addFoods);
 document.getElementById("remove-food").addEventListener("click", removeFoods);
-window.onload = populateFoods;
+window.onload = populate;

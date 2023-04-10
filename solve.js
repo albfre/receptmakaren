@@ -26,13 +26,9 @@ function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
 }
 
 // Functions relating to buttons on the html page
-const qp_consideredNaringsvarden = ["Energi (kJ)", "Fett", "Summa mättade fettsyror", "Kolhydrater", "Socker totalt", "Fibrer", "Protein", "Salt"];
-const shortNaringsvarden = ["energi", "fett", "mattat-fett", "kolhydrat", "socker", "fibrer", "protein", "salt"];
-//const qp_consideredNaringsvarden = ["Energi (kJ)"];
-//const shortNaringsvarden = ["energi"];
 const naringsvardenMap = {}
-for (let i = 0; i < qp_consideredNaringsvarden.length; i++) {
-  naringsvardenMap[qp_consideredNaringsvarden[i]] = shortNaringsvarden[i];
+for (let i = 0; i < consideredNaringsvarden.length; i++) {
+  naringsvardenMap[consideredNaringsvarden[i]] = shortNaringsvarden[i];
 }
 
 function parseSelectedFoodOption(option) {
@@ -56,8 +52,8 @@ function parseSelectedFoodOption(option) {
 }
 
 function parseSelectedFoods() {
-  if (qp_consideredNaringsvarden.length != shortNaringsvarden.length) {
-    throw new Error('consideredNaringsvarden.length != shortNaringsvarden.length: ' + qp_consideredNaringsvarden + ", " + shortNaringsvarden);
+  if (consideredNaringsvarden.length != shortNaringsvarden.length) {
+    throw new Error('consideredNaringsvarden.length != shortNaringsvarden.length: ' + consideredNaringsvarden + ", " + shortNaringsvarden);
   }
 
   const naringsvarden = {};
@@ -71,7 +67,8 @@ function parseSelectedFoods() {
 function parseInput() {
   const naringsvarden = {};
   for (const naringsvarde of shortNaringsvarden) {
-    const targetValue = parseFloat(document.getElementById(naringsvarde).value);
+    const str = document.getElementById("mimic-" + naringsvarde).value.trim();
+    const targetValue = str.length === 0 ? 0.0 : parseFloat(str);
     naringsvarden[naringsvarde] = targetValue
   }
   return naringsvarden;
@@ -106,10 +103,12 @@ function solve() {
 
   // (t - k0 x0 - k1 x1 ...)^2 = t^2 - 2 t ki xi + ki^2 xi^2 + 2 ki kj xi xj
   const selectedFoodsNaringsvarden = parseSelectedFoods();
-  console.log(selectedFoodsNaringsvarden);
   const targetNaringsvarden = parseInput();
+  //console.log('Näringsämnen');
+  //console.log(selectedFoodsNaringsvarden);
+  //console.log(targetNaringsvarden);
   for (const naringsvarde of shortNaringsvarden) {
-    const target = targetNaringsvarden[naringsvarde];
+    const target = Math.max(targetNaringsvarden[naringsvarde], 10);
     for (let i = 0; i < foods.length; i++) {
       const ki = selectedFoodsNaringsvarden[foods[i]][naringsvarde];
       c[i] -= target * ki / target ** 2;
@@ -123,7 +122,6 @@ function solve() {
   }
   console.log('Q')
   console.log(Q)
-  //Q = diag(filledVector(n, 1));
 
   try {
     const x = solveQP(Q, c, Aeq, beq, Aineq, bineq);
@@ -139,18 +137,20 @@ function solve() {
       }
     }
     setOutput(naringsvarden, 'result');
+    printResults(options, x);
   } catch (error) {
     let solutionElement = document.getElementById("status");
     solutionElement.innerHTML = `Error ${error.lineNumber}: ${error.message}`;
   }
 }
 
-function printResults() {
-  const selectedFoodsList = document.querySelector("#selected-foods");
-  for (const food of selectedFoods) {
+function printResults(options, weights) {
+  const weightList = document.querySelector("#resulting-weights");
+  for (let i = 0; i < options.length; i++) {
     const listItem = document.createElement("li");
-    listItem.textContent = `${food.name}: Energy=${food.energy}, Fat=${food.fat}, Sugar=${food.sugar}`;
-    selectedFoodsList.appendChild(listItem);
+    const formattedNumber = weights[i].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    listItem.textContent = `${options[i].value}: ${formattedNumber}`;
+    weightList.appendChild(listItem);
   }
 }
 
