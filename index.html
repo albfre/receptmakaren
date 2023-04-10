@@ -2,11 +2,11 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Recepthärmaren</title>
+    <title>Receptmakaren</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
   </head>
   <body>
-    <h1>Recepthärmaren</h1>
+    <h1>Receptmakaren</h1>
     <div class="container">
       <div>
         <h2>Ingredienser</h2>
@@ -25,12 +25,12 @@
         <button id="remove-food">Ta bort</button>
       </div>
       <div>
-        <h2>Vald ingrediens</h2>
+        <h2>Ingrediensdata</h2>
         <div style="padding: 0" id="vald-div">
         </div>
       </div>
       <div>
-        <h2>Näringsvärden att härma</h2>
+        <h2>Önskade näringsvärden</h2>
         <div style="padding: 0" id="mimic-div">
         </div>
         <br>
@@ -49,11 +49,14 @@
     <script>
     </script>
     <div>
+      <h1>Status</h1>
+      <p id="status"></p>
+    </div>
+    <div style="display: none">
       <h1>Databashantering</h1>
       <form>
         <button type="button" id="extract">Konvertera databas</button>
       </form>
-      <p id="status"></p>
     </div>
     <script src="extract.js"></script>
     <script src="setup.js"></script>

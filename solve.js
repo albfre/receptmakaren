@@ -5,21 +5,21 @@ function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
   const {x, f, res, gap, iter} = interiorPointQP(Q, c, Aeq, beq, Aineq, bineq);
   const end = performance.now();
 
-  let tableStr = '<table>';
+  let tableStr = "<table>";
   function addRow(str, val) {
     tableStr += `<tr><td>${str}</td><td>${val}</td></tr>`;
   }
 
-  addRow('Objective value', f);
-  addRow('Number of iterations', iter);
-  addRow('Residual', res);
-  addRow('Gap', gap);
-  addRow('Elapsed time', `${end - start} milliseconds`);
+  addRow("Objective value", f);
+  addRow("Number of iterations", iter);
+  addRow("Residual", res);
+  addRow("Gap", gap);
+  addRow("Elapsed time", `${end - start} milliseconds`);
   for (let i = 0; i < x.length; i++) {
     addRow(variables.length == x.length ? variables[i] : `x${i}`, x[i]);
   }
-  addRow('Variable vector', x);
-  tableStr += '</table>';
+  addRow("Variable vector", x);
+  tableStr += "</table>";
 
   solutionElement.innerHTML = tableStr;
   return x;
@@ -35,7 +35,7 @@ function parseSelectedFoodOption(option) {
   console.log(option.value); // or option.text to get the text content of the option
   const values = option.dataset.value.split(",");
   if (values.length % 2 != 0) {
-    throw new Error('Value error: ' + values);
+    throw new Error("Value error: " + values);
   }
   const varden = {};
   for (let i = 0; i < values.length; i += 2) {
@@ -45,7 +45,7 @@ function parseSelectedFoodOption(option) {
       varden[naringsvardenMap[name]] = value;
     }
     else {
-      //throw new Error('Unknown name: ' + name);
+      //throw new Error("Unknown name: " + name);
     }
   }
   return varden;
@@ -53,7 +53,7 @@ function parseSelectedFoodOption(option) {
 
 function parseSelectedFoods() {
   if (consideredNaringsvarden.length != shortNaringsvarden.length) {
-    throw new Error('consideredNaringsvarden.length != shortNaringsvarden.length: ' + consideredNaringsvarden + ", " + shortNaringsvarden);
+    throw new Error("consideredNaringsvarden.length != shortNaringsvarden.length: " + consideredNaringsvarden + ", " + shortNaringsvarden);
   }
 
   const naringsvarden = {};
@@ -77,8 +77,9 @@ function parseInput() {
 function setOutput(naringsvarden, prefix) {
   for (const naringsvarde of shortNaringsvarden) {
     const value = naringsvarden[naringsvarde];
+    const formattedValue = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
     const target = document.getElementById(`${prefix}-${naringsvarde}`);
-    target.textContent = value;
+    target.textContent = formattedValue;
   }
 }
 
@@ -104,23 +105,24 @@ function solve() {
   // (t - k0 x0 - k1 x1 ...)^2 = t^2 - 2 t ki xi + ki^2 xi^2 + 2 ki kj xi xj
   const selectedFoodsNaringsvarden = parseSelectedFoods();
   const targetNaringsvarden = parseInput();
-  //console.log('Näringsämnen');
+  //console.log("Näringsämnen");
   //console.log(selectedFoodsNaringsvarden);
   //console.log(targetNaringsvarden);
   for (const naringsvarde of shortNaringsvarden) {
-    const target = Math.max(targetNaringsvarden[naringsvarde], 10);
+    const target = targetNaringsvarden[naringsvarde];
+    const denominator = Math.max(target, 10) ** 2;
     for (let i = 0; i < foods.length; i++) {
       const ki = selectedFoodsNaringsvarden[foods[i]][naringsvarde];
-      c[i] -= target * ki / target ** 2;
-      Q[i][i] += ki ** 2 / target ** 2;
+      c[i] -= target * ki / denominator;
+      Q[i][i] += ki ** 2 / denominator;
       for (let j = i + 1; j < foods.length; j++) {
         const kj = selectedFoodsNaringsvarden[foods[j]][naringsvarde];
-        Q[i][j] += ki * kj / target ** 2;
-        Q[j][i] += ki * kj / target ** 2;
+        Q[i][j] += ki * kj / denominator;
+        Q[j][i] += ki * kj / denominator;
       }
     }
   }
-  console.log('Q')
+  console.log("Q")
   console.log(Q)
 
   try {
@@ -148,7 +150,7 @@ function printResults(options, weights) {
   const weightList = document.querySelector("#resulting-weights");
   for (let i = 0; i < options.length; i++) {
     const listItem = document.createElement("li");
-    const formattedNumber = weights[i].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedNumber = weights[i].toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
     listItem.textContent = `${options[i].value}: ${formattedNumber}`;
     weightList.appendChild(listItem);
   }
