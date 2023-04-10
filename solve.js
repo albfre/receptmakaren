@@ -83,7 +83,7 @@ function setOutput(naringsvarden, prefix) {
   }
 }
 
-function solve() {
+function solve(decreasing = false) {
   const selectedFoodsList = document.querySelector("#selected-foods");
   const options = selectedFoodsList.options;
   const foods = zeroVector(options.length);
@@ -99,8 +99,19 @@ function solve() {
   const beq = filledVector(1, 1.0);
 
   // x >= 0
-  const Aineq = diag(filledVector(n, 1.0));
-  const bineq = zeroVector(n);
+  let Aineq = diag(filledVector(n, 1.0));
+  let bineq = zeroVector(n);
+  if (decreasing) {
+    // x[i] >= x[i + 1] => (1 -1 0 ... ) x >= 0
+    for (let i = 0; i + 1 < options.length; i++) {
+      const row = zeroVector(n);
+      row[i] = 1;
+      row[i + 1] = -1;
+      Aineq.push(row);
+      bineq.push(0.0);
+    }
+  }
+  console.log(Aineq)
 
   // (t - k0 x0 - k1 x1 ...)^2 = t^2 - 2 t ki xi + ki^2 xi^2 + 2 ki kj xi xj
   const selectedFoodsNaringsvarden = parseSelectedFoods();
@@ -146,8 +157,20 @@ function solve() {
   }
 }
 
+function solveWithoutOrder() {
+  solve(false);
+}
+
+function solveDecreasing() {
+  solve(true);
+}
+
 function printResults(options, weights) {
   const weightList = document.querySelector("#resulting-weights");
+  while (weightList.firstChild) {
+    weightList.removeChild(weightList.firstChild);
+  }
+
   for (let i = 0; i < options.length; i++) {
     const listItem = document.createElement("li");
     const formattedNumber = weights[i].toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
@@ -156,4 +179,5 @@ function printResults(options, weights) {
   }
 }
 
-document.getElementById("optimize").addEventListener("click", solve);
+document.getElementById("optimize").addEventListener("click", solveWithoutOrder);
+document.getElementById("optimize-decreasing").addEventListener("click", solveDecreasing);

@@ -52,11 +52,13 @@ async function populateFoods() {
     foodsSelect.appendChild(option);
   }
 
-  const preselect = ["Socker", "Havregryn fullkorn", "Rapsolja", "Ljus sirap", "Veteflingor ångprep. fullkorn", "Vetekli", "Salt m. jod"];
+  const preselect = ["Havregryn fullkorn", "Socker", "Rapsolja", "Ljus sirap", "Veteflingor ångprep. fullkorn", "Vetekli", "Salt m. jod"];
   const selected = document.querySelector("#selected-foods");
-  for (const option of foodsSelect.options) {
-    if (preselect.includes(option.value)) {
-      selected.appendChild(option);
+  for (const pre of preselect) {
+    for (const option of foodsSelect.options) {
+      if (option.value === pre) {
+        selected.appendChild(option);
+      }
     }
   }
 }
