@@ -1,4 +1,4 @@
-function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
+function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=100) {
   /* minimize 0.5 x' H x + c' x
    *   st    Aeq x = beq
    *         Aineq x >= bineq
@@ -34,8 +34,6 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
     const Hx = matrixTimesVector(H, x);
     const Aeqx = matrixTimesVector(Aeq, x);
     const Aineqx = matrixTimesVector(Aineq, x);
-    const AeqTy = matrixTimesVector(AeqT, y);
-    const AineqTz = matrixTimesVector(AineqT, z);
 
     // Objective
     const f = 0.5 * dot(x, Hx) + dot(c, x); // 0.5 x' H x + c' x
@@ -43,18 +41,19 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
     // Residuals
     let rGrad = add(Hx, c); // Hx + c + Aeq' y - Aineq' z
     if (mEq > 0 ) {
+      const AeqTy = matrixTimesVector(AeqT, y);
       rGrad = add(rGrad, AeqTy);
     }
     if (mIneq > 0 ) {
+      const AineqTz = matrixTimesVector(AineqT, z);
       rGrad = subtract(rGrad, AineqTz);
     }
     const rEq = subtract(Aeqx, beq); // Aeq x - beq
     const rIneq = subtract(subtract(Aineqx, s), bineq); // Aineq x - s - bineq
-    const rS = subtract(elementwiseVectorProduct(s, z), new Array(mIneq).fill(mu)); // SZe - mu e
+    const rS = subtract(elementwiseProduct(s, z), new Array(mIneq).fill(mu)); // SZe - mu e
 
     return { f, rGrad, rEq, rIneq, rS };
   }
-
 
   // Construct the augmented KKT system
   /*  [ H       Aeq'   Aineq' ]
@@ -69,23 +68,23 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
   setSubmatrix(KKT, Aeq, n, 0);
   setSubmatrix(KKT, Aineq, n + mEq, 0);
   function updateMatrix(s, z) {
-    const minusZinvS = negate(elementwiseVectorDivision(s, z));
+    const minusZinvS = negate(elementwiseDivision(s, z));
     setSubdiagonal(KKT, minusZinvS, n + mEq, n + mEq);
   }
 
   // Define the function for computing the search direction
-  function computeSearchDirection(s, z, L, D, rGrad, rEq, rIneq, rS) {
-    const rIneqMinusYinvrS = add(rIneq, elementwiseVectorDivision(rS, z)); // Aineq x - s - bineq + Z^-1 (SZe - mue)
+  function computeSearchDirection(s, z, L, ipiv, rGrad, rEq, rIneq, rS) {
+    const rIneqMinusYinvrS = add(rIneq, elementwiseDivision(rS, z)); // Aineq x - s - bineq + Z^-1 (SZe - mue)
     const rhs = negate(rGrad.concat(rEq).concat(rIneqMinusYinvrS));
 
     // Solve the KKT system
-    const d = solveUsingFactorization(L, D, rhs);
+    const d = solveUsingFactorization(L, ipiv, rhs);
 
     // Extract the search direction components
     const dx = d.slice(0, n);
     const dy = d.slice(n, n + mEq);
     const dz = negate(d.slice(n + mEq, n + mEq + mIneq));
-    const ds = negate(elementwiseVectorDivision(add(rS, elementwiseVectorProduct(s, dz)), z)); // -Z^-1 (rS + S dz)
+    const ds = negate(elementwiseDivision(add(rS, elementwiseProduct(s, dz)), z)); // -Z^-1 (rS + S dz)
 
     return { dx, ds, dy, dz };
   }
@@ -118,19 +117,19 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
 
     // Check the convergence criterion
     const { res, gap } = getResidualAndGap(s, z, rGrad, rEq, rIneq);
-    console.log('f: ' + f + ', res: ' + res + ', gap: ' + gap )
+    console.log(`${iter}. f: ${f}, res: ${res}, gap: ${gap}`)
     if (res <= tol && gap <= tol) {
       break;
     }
 
     // Update and factorize KKT matrix
     updateMatrix(s, z);
-    [L, D] = symmetricIndefiniteFactorization(KKT);
+    const [L, ipiv] = symmetricIndefiniteFactorization(KKT);
 
     // Use the predictor-corrector method
 
     // Compute affine scaling step
-    const { dx : dxAff, ds : dsAff, dy : dyAff, dz : dzAff } = computeSearchDirection(s, z, L, D, rGrad, rEq, rIneq, rS);
+    const { dx : dxAff, ds : dsAff, dy : dyAff, dz : dzAff } = computeSearchDirection(s, z, L, ipiv, rGrad, rEq, rIneq, rS);
     const alphaAffP = getMaxStep(s, dsAff);
     const alphaAffD = getMaxStep(z, dzAff);
     const zAff = Array.from(z);
@@ -143,8 +142,8 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
     const mu = getMu(s, z);
     const sigma = mu > 0 ? Math.pow(muAff / mu, 3.0) : 0;
     const { rS : rSCenter } = evalFunc(x, s, y, z, sigma * mu);
-    const rSCenterCorr = add(elementwiseVectorProduct(dzAff, dsAff), rS);
-    const { dx, ds, dy, dz } = computeSearchDirection(s, z, L, D, rGrad, rEq, rIneq, rSCenterCorr);
+    const rSCenterCorr = add(elementwiseProduct(dzAff, dsAff), rS);
+    const { dx, ds, dy, dz } = computeSearchDirection(s, z, L, ipiv, rGrad, rEq, rIneq, rSCenterCorr);
     const alphaP = getMaxStep(s, ds);
     const alphaD = getMaxStep(z, dz);
 
@@ -161,7 +160,6 @@ function interiorPointQP(H, c, Aeq, beq, Aineq, bineq, tol=1e-8, maxIter=200) {
   const { res, gap } = getResidualAndGap(s, z, rGrad, rEq, rIneq);
   return { x, f, res, gap, iter };
 }
-
 
 // Helper functions for linear algebra operations
 function filledVector(n, v) {
@@ -208,7 +206,7 @@ function setSubdiagonal(M, d, startI, startJ) {
 }
 
 function isVector(x) {
-  return Array.isArray(x) && x.every(xi => typeof xi == 'number');
+  return Array.isArray(x) && x.every(xi => typeof xi === 'number');
 }
 
 function assertIsVector(x, name) {
@@ -260,12 +258,12 @@ function negate(x) {
   return x.map(value => -value);
 }
 
-function elementwiseVectorProduct(x, y) {
+function elementwiseProduct(x, y) {
   assertAreEqualLengthVectors(x, y);
   return x.map((value, index) => value * y[index]);
 }
 
-function elementwiseVectorDivision(x, y) {
+function elementwiseDivision(x, y) {
   assertAreEqualLengthVectors(x, y);
   return x.map((value, index) => value / y[index]);
 }
@@ -309,214 +307,3 @@ function dot(x, y) {
   assertAreEqualLengthVectors(x, y);
   return x.reduce((sum, value, index) => sum + value * y[index], 0);
 }
-
-function symmetricIndefiniteFactorization(A) {
-  const n = A.length;
-  const L = zeroMatrix(n, n);
-  const D = zeroVector(n);
-
-  for (let i = 0; i < n; i++) {
-    // Compute the (i,i) entry of D
-    let d_ii = A[i][i];
-    for (let k = 0; k < i; k++) {
-      d_ii -= L[i][k] ** 2 * D[k];
-    }
-
-    // Check for singularity
-    if (d_ii === 0) {
-      throw new Error('Matrix is singular');
-    }
-
-    D[i] = d_ii;
-
-    // Compute the entries of L
-    for (let j = i + 1; j < n; j++) {
-      let l_ij = A[i][j];
-      for (let k = 0; k < i; k++) {
-        l_ij -= L[i][k] * D[k] * L[j][k];
-      }
-      L[j][i] = l_ij / d_ii;
-    }
-  }
-
-  return [L, D];
-}
-
-function solveUsingFactorization(L, D, b) {
-  const n = L.length;
-  const x = new Array(n).fill(0);
-  const y = new Array(n).fill(0);
-
-  // Forward substitution: solve Ly = b
-  for (let i = 0; i < n; i++) {
-    let sum = 0;
-    for (let j = 0; j < i; j++) {
-      sum += L[i][j] * y[j];
-    }
-    y[i] = b[i] - sum;
-  }
-
-  // Backward substitution: solve L^Tx = y
-  for (let i = n - 1; i >= 0; i--) {
-    let sum = 0;
-    for (let j = i + 1; j < n; j++) {
-      sum += L[j][i] * x[j];
-    }
-    x[i] = (y[i] - sum) / D[i];
-  }
-
-  return x;
-}
-
-// Parsing of objectives and constraints
-
-function solveQP(Q, c, Aeq, beq, Aineq, bineq, variables = []) {
-  let solutionElement = document.getElementById("status");
-
-  const start = performance.now();
-  const {x, f, res, gap, iter} = interiorPointQP(Q, c, Aeq, beq, Aineq, bineq);
-  const end = performance.now();
-
-  let tableStr = '<table>';
-  function addRow(str, val) {
-    tableStr += `<tr><td>${str}</td><td>${val}</td></tr>`;
-  }
-
-  addRow('Objective value', f);
-  addRow('Number of iterations', iter);
-  addRow('Residual', res);
-  addRow('Gap', gap);
-  addRow('Elapsed time', `${end - start} milliseconds`);
-  for (let i = 0; i < x.length; i++) {
-    addRow(variables.length == x.length ? variables[i] : `x${i}`, x[i]);
-  }
-  addRow('Variable vector', x);
-  tableStr += '</table>';
-
-  solutionElement.innerHTML = tableStr;
-  return x;
-}
-
-// Functions relating to buttons on the html page
-const qp_consideredNaringsvarden = ["Energi (kJ)", "Fett", "Summa mättade fettsyror", "Kolhydrater", "Socker totalt", "Fibrer", "Protein", "Salt"];
-const shortNaringsvarden = ["energi", "fett", "mattat-fett", "kolhydrat", "socker", "fibrer", "protein", "salt"];
-
-function parseSelectedFoods() {
-  if (qp_consideredNaringsvarden.length != shortNaringsvarden.length) {
-    throw new Error('consideredNaringsvarden.length != shortNaringsvarden.length: ' + qp_consideredNaringsvarden + ", " + shortNaringsvarden);
-  }
-  const naringsvardenMap = {}
-  for (let i = 0; i < qp_consideredNaringsvarden.length; i++) {
-    naringsvardenMap[qp_consideredNaringsvarden[i]] = shortNaringsvarden[i];
-  }
-
-  const naringsvarden = {};
-  const selectedFoodsList = document.querySelector("#selected-foods");
-  for (const option of selectedFoodsList.options) {
-    console.log(option.value); // or option.text to get the text content of the option
-    const values = option.dataset.value.split(",");
-    if (values.length % 2 != 0) {
-      throw new Error('Value error: ' + values);
-    }
-    const varden = {};
-    for (let i = 0; i < values.length; i += 2) {
-      const name = values[i].trim();
-      const value = parseFloat(values[i + 1]);
-      if (name in naringsvardenMap) {
-        varden[naringsvardenMap[name]] = value;
-      }
-      else {
-        throw new Error('Unknown name: ' + name);
-      }
-    }
-    naringsvarden[option.value] = varden;
-  }
-  return naringsvarden;
-}
-
-function parseInput() {
-  const naringsvarden = {};
-  for (const naringsvarde of shortNaringsvarden) {
-    const targetValue = parseFloat(document.getElementById(naringsvarde).value);
-    naringsvarden[naringsvarde] = targetValue
-  }
-  return naringsvarden;
-}
-
-function setOutput(naringsvarden) {
-  for (const naringsvarde of shortNaringsvarden) {
-    const value = naringsvarden[naringsvarde];
-    const target = document.getElementById(`result-${naringsvarde}`);
-    target.textContent = value;
-  }
-}
-
-function solve() {
-  const selectedFoodsList = document.querySelector("#selected-foods");
-  const options = selectedFoodsList.options;
-  const foods = zeroVector(options.length);
-  for (let i = 0; i < options.length; i++) {
-    foods[i] = options[i].value;
-  }
-  const n = options.length;
-  let Q = zeroMatrix(n, n);
-  const c = zeroVector(n);
-
-  // e' x = 1
-  const Aeq = filledMatrix(1, n, 1.0);
-  const beq = filledVector(1, 1.0);
-
-  // x >= 0
-  const Aineq = diag(filledVector(n, 1.0));
-  const bineq = zeroVector(n);
-
-  // (t - k0 x0 - k1 x1 ...)^2 = t^2 - 2 t ki xi + ki^2 xi^2 + 2 ki kj xi xj
-  const selectedFoodsNaringsvarden = parseSelectedFoods();
-  const targetNaringsvarden = parseInput();
-  for (const naringsvarde of shortNaringsvarden) {
-    const target = targetNaringsvarden[naringsvarde];
-    for (let i = 0; i < foods.length; i++) {
-      const ki = selectedFoodsNaringsvarden[foods[i]][naringsvarde];
-      //c[i] -= target * ki;
-      Q[i][i] += ki ** 2;
-      for (let j = i + 1; j < foods.length; j++) {
-        const kj = selectedFoodsNaringsvarden[foods[j]][naringsvarde];
-        Q[i][j] += ki * kj;
-        Q[j][i] += ki * kj;
-      }
-    }
-  }
-  console.log('Q')
-  console.log(Q)
-  Q = diag(filledVector(n, 1));
-
-  try {
-    const x = solveQP(Q, c, Aeq, beq, Aineq, bineq);
-    console.log(x)
-    const naringsvarden = {};
-    for (const naringsvarde of shortNaringsvarden) {
-      naringsvarden[naringsvarde] = 0.0;
-    }
-    
-    for (const naringsvarde of shortNaringsvarden) {
-      for (let i = 0; i < foods.length; i++) {
-        naringsvarden[naringsvarde] += selectedFoodsNaringsvarden[foods[i]][naringsvarde] * x[i];
-      }
-    }
-    setOutput(naringsvarden);
-  } catch (error) {
-    let solutionElement = document.getElementById("status");
-    solutionElement.innerHTML = `Error ${error.lineNumber}: ${error.message}`;
-  }
-}
-
-function printResults() {
-  const selectedFoodsList = document.querySelector("#selected-foods");
-  for (const food of selectedFoods) {
-    const listItem = document.createElement("li");
-    listItem.textContent = `${food.name}: Energy=${food.energy}, Fat=${food.fat}, Sugar=${food.sugar}`;
-    selectedFoodsList.appendChild(listItem);
-  }
-}
-
-document.getElementById("optimize").addEventListener("click", solve);

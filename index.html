@@ -19,10 +19,36 @@
       </div>
       <div>
         <h2>Valda ingredienser</h2>
-        <select multiple id="selected-foods" class="box-width multi-height2">
+        <select multiple id="selected-foods" class="box-width multi-height2" onchange="showFood()">
         </select>
         <br>
         <button id="remove-food">Ta bort</button>
+      </div>
+      <div>
+        <h2>Vald ingrediens</h2>
+        <label class="label-width">Energi (kJ):</label>
+        <label id="vald-energi" class="input-width"></label>
+        <br>
+        <label class="label-width">Fett (g):</label>
+        <label id="vald-fett" class="input-width"></label>
+        <br>
+        <label class="label-width">- varav mättat fett (g):</label>
+        <label id="vald-mattat-fett" class="input-width"></label>
+        <br>
+        <label class="label-width">Kolhydrater (g):</label>
+        <label id="vald-kolhydrat" class="input-width"></label>
+        <br>
+        <label class="label-width">- varav socker (g):</label>
+        <label id="vald-socker" class="input-width"></label>
+        <br>
+        <label class="label-width">Protein (g):</label>
+        <label id="vald-protein" class="input-width"></label>
+        <br>
+        <label class="label-width">Fibrer (g):</label>
+        <label id="vald-fibrer" class="input-width"></label>
+        <br>
+        <label class="label-width">Salt (g):</label>
+        <label id="vald-salt" class="input-width"></label>
       </div>
       <div>
         <h2>Näringsvärden att härma</h2>
@@ -95,6 +121,9 @@
       <p id="status"></p>
     </div>
     <script src="extract.js"></script>
+    <script src="setup.js"></script>
+    <script src="bunch-kaufman.js"></script>
     <script src="qp.js"></script>
+    <script src="solve.js"></script>
   </body>
 </html>
