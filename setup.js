@@ -47,7 +47,7 @@ async function readFile(filename) {
 }
 
 async function populateFoods() {
-  const livsmedel = await parseLivsmedelFromXML('compressed');
+  const livsmedel = await parseLivsmedelFromXML('compressedBak');
   const foodsSelect = document.querySelector("#foods");
   foodsSelect.innerHTML = "";
   for (const { livsmedelsnamn, naringsvarden } of livsmedel) {
