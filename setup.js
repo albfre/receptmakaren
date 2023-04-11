@@ -1,5 +1,5 @@
 const consideredNaringsvarden = ["Energi (kJ)", "Fett", "Summa mättade fettsyror", "Kolhydrater", "Socker totalt", "Fibrer", "Protein", "Salt"];
-const displayNaringsvarden = ["Energi (kJ)", "Fett (g)", "- varav mättat fett (g)" , "Kolhydrater (g)", "- varav socker (g)", "Fibrer (g)", "Protein (g)", "Salt (g)"]
+const displayNaringsvarden = ["Energi (kJ)", "Fett (g)", "- varav mättat fett (g)" , "Kolhydrater (g)", "Socker (g)", "Fibrer (g)", "Protein (g)", "Salt (g)"]
 const shortNaringsvarden = ["energi", "fett", "mattat-fett", "kolhydrat", "socker", "fibrer", "protein", "salt"];
 
 async function parseLivsmedelFromXML(filename) {
