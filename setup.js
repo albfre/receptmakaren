@@ -57,7 +57,10 @@ async function populateFoods() {
   for (const pre of preselect) {
     for (const option of foodsSelect.options) {
       if (option.value === pre) {
-        selected.appendChild(option);
+        const newOption = document.createElement("option");
+        newOption.value = option.value;
+        newOption.textContent = option.textContent;
+        selected.appendChild(newOption);
       }
     }
   }
