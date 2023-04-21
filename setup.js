@@ -162,6 +162,26 @@ function showFood() {
   }
 }
 
+function up() {
+  const select = document.querySelector("#selected-foods");
+  for (var i = 0; i < select.options.length; i++) {
+    if (select.options[i].selected && i > 0 && !select.options[i - 1].selected) {
+      select.insertBefore(select.options[i], select.options[i - 1]);
+    }
+  }
+}
+
+function down() {
+  const select = document.querySelector("#selected-foods");
+  for (var i = select.options.length - 1; i >= 0; i--) {
+    if (select.options[i].selected && i + 1 < select.options.length && !select.options[i + 1].selected) {
+      select.insertBefore(select.options[i + 1], select.options[i]);
+    }
+  }
+}
+
 document.getElementById("add-food").addEventListener("click", addFoods);
 document.getElementById("remove-food").addEventListener("click", removeFoods);
+document.getElementById("up-btn").addEventListener("click", up);
+document.getElementById("down-btn").addEventListener("click", down);
 window.onload = populate;
