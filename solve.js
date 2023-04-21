@@ -121,7 +121,7 @@ function solve(decreasing = false) {
   //console.log(targetNaringsvarden);
   for (const naringsvarde of shortNaringsvarden) {
     const target = targetNaringsvarden[naringsvarde];
-    const denominator = Math.max(target, 10) ** 2;
+    const denominator = Math.max(target, 0.1) ** 2;
     for (let i = 0; i < foods.length; i++) {
       const ki = selectedFoodsNaringsvarden[foods[i]][naringsvarde];
       c[i] -= target * ki / denominator;
