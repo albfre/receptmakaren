@@ -32,7 +32,7 @@ for (let i = 0; i < consideredNaringsvarden.length; i++) {
 }
 
 function parseSelectedFoodOption(option) {
-  //console.log(option.value); // or option.text to get the text content of the option
+  //console.log(option);
   const values = option.dataset.value.split(",");
   if (values.length % 2 != 0) {
     throw new Error("Value error: " + values);
@@ -111,7 +111,7 @@ function solve(decreasing = false) {
       bineq.push(0.0);
     }
   }
-  console.log(Aineq)
+  console.log(Aineq);
 
   // (t - k0 x0 - k1 x1 ...)^2 = t^2 - 2 t ki xi + ki^2 xi^2 + 2 ki kj xi xj
   const selectedFoodsNaringsvarden = parseSelectedFoods();
@@ -133,12 +133,12 @@ function solve(decreasing = false) {
       }
     }
   }
-  console.log("Q")
-  console.log(Q)
+  console.log("Q");
+  console.log(Q);
 
   try {
     const x = solveQP(Q, c, Aeq, beq, Aineq, bineq);
-    console.log(x)
+    console.log(x);
     const naringsvarden = {};
     for (const naringsvarde of shortNaringsvarden) {
       naringsvarden[naringsvarde] = 0.0;
@@ -158,6 +158,7 @@ function solve(decreasing = false) {
 }
 
 function solveWithoutOrder() {
+  console.log("apa");
   solve(false);
 }
 

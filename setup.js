@@ -57,10 +57,8 @@ async function populateFoods() {
   for (const pre of preselect) {
     for (const option of foodsSelect.options) {
       if (option.value === pre) {
-        const newOption = document.createElement("option");
-        newOption.value = option.value;
-        newOption.textContent = option.textContent;
-        selected.appendChild(newOption);
+        selected.appendChild(copyOption(option));
+        break;
       }
     }
   }
@@ -101,19 +99,19 @@ async function populate() {
   populateDivs("result", "label");
 }
 
+function copyOption(option) {
+  const newOption = document.createElement("option");
+  newOption.textContent = option.textContent; // food name
+  newOption.setAttribute("data-value", option.dataset.value);
+  return newOption;
+}
+
 function addFoods() {
   const selectedFoods = [];
   const foodsSelect = document.querySelector("#foods");
-  for (const option of foodsSelect.selectedOptions) {
-    const foodName = option.textContent;
-    selectedFoods.push([foodName, option.dataset.value]);
-  }
   const selectedFoodsList = document.querySelector("#selected-foods");
-  for (const food of selectedFoods) {
-    const option = document.createElement("option");
-    option.textContent = food[0];
-    option.setAttribute("data-value", food[1]);
-    selectedFoodsList.appendChild(option);
+  for (const option of foodsSelect.selectedOptions) {
+    selectedFoodsList.appendChild(copyOption(option));
   }
 }
 
