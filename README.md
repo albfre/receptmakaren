@@ -1,3 +1,3 @@
-# Reverse recipe
+# Recipe maker
 
-Reverse engineering of recipes
+[Reverse engineering of recipes](https://albfre.github.io/receptmakaren/)
